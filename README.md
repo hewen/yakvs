@@ -12,26 +12,53 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 
 ## Protocol
 
-This package implements a TCP network service which exposes an in-memory key-value store to clients. The client can perform the following commands:
+    PUT <key> <value>
+    Returns: 
+      OK - success
+      ERROR - incorrect arguments
 
- - PUT &lt;key&gt; &lt;value&gt;
- - GET &lt;key&gt;
- - HAS &lt;key&gt;
- - REMOVE &lt;key&gt;
- - SIZE
- - CLEAR
- - LIST
- - LIST KEYS
- - LIST VALUES
- - QUIT
+    GET <key>
+    Returns:
+      VALUE - the value to which the specified key is mapped
+      nil - store contains no mapping for the key
+      ERROR - incorrect arguments
 
-The server can send the following responses:
+    HAS <key>
+    Returns:
+      TRUE - store contains a mapping for the key
+      FALSE - store contains no mapping for the key
 
- - OK
- - ERROR
- - ITEM
- - TRUE
- - FALSE
- - SIZE
+    REMOVE <key>
+    Returns:
+      OK - success
+      ERROR - incorrect arguments
 
-Keys and values may not have any spaces in them.
+    SIZE
+    Returns:
+      SIZE - the number of key-value mappings in this store
+      ERROR - too many arguments
+
+    CLEAR
+    Returns:
+      OK - success
+      ERROR - too many arguments
+
+    LIST
+    Returns:
+      KVPs - the key-value mappings in the store
+      ERROR - too many arguments
+
+    LIST KEYS
+    Returns:
+      KEYS - the keys in the store
+      ERROR - incorrect arguments
+
+    LIST VALUES
+    Returns:
+      VALUES - the values in the store
+      ERROR - incorrect arguments
+
+    QUIT
+    Returns:
+      OK - success
+      ERROR - incorrect arguments

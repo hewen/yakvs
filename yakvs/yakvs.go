@@ -321,6 +321,7 @@ func (c *connection) serve() {
 					if size == 0 {
 						buf.WriteString(NIL)
 					} else {
+						buf.WriteString(strconv.Itoa(size) + "\n")
 						if len(split) == 1 {
 							for i := 0; i < size; i++ {
 								buf.WriteString(keys[i] + "=" + values[i] + "\n")

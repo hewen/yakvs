@@ -1,4 +1,4 @@
-# YAKVS
+# YAKVS [![Build Status](https://travis-ci.org/sci4me/yakvs.svg?branch=master)](https://travis-ci.org/sci4me/yakvs)
 
 YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked key-value store written in Go.
 

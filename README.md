@@ -8,7 +8,10 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 
 ## Usage
 
-	yakvs <port>
+    yakvs <port>
+    Options:  
+      -maxclients <number>
+      -maxprocs <number>
 
 ## Protocol
 

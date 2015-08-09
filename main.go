@@ -7,11 +7,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"runtime"
 	"github.com/sci4me/yakvs/yakvs"
 )
 
+const (
+	MAX_CLIENTS = 10000
+)
+
 func main() {
-	fMaxClients := flag.Int("maxclients", 10000, "")
+	fMaxClients := flag.Int("maxclients", MAX_CLIENTS, "")
+	fMaxProcs := flag.Int("maxprocs", runtime.NumCPU(), "")
 
 	flag.Parse()
 
@@ -29,10 +35,19 @@ func main() {
 	}
 
 	maxClients := *fMaxClients
+	maxProcs := *fMaxProcs
+
 	if maxClients < 1 {
-		fmt.Println("maxclients must be > 0")
-		return 
+		fmt.Println("maxclients must be > 0, using default")
+		maxClients = MAX_CLIENTS
 	}
+
+	if maxProcs < 1 {
+		fmt.Println("maxprocs must be > 0, using default")
+		maxProcs = runtime.NumCPU()
+	}
+
+	runtime.GOMAXPROCS(maxProcs)
 
 	server := yakvs.NewServer(maxClients)
 	go server.Start(port)

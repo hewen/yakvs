@@ -12,7 +12,34 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
     Options:  
       -maxclients=<number> (default = 10000)
       -maxprocs=<number> (default = runtime.NumCPU())  
-      -verbose=<true|false> (default = false)
+      -verbose=<number> (default = false)
+
+### Verbosity Options
+
+    0:
+      - connection accepted  
+      - connection closed  
+      - connection refused
+      - invalid command
+
+    1:  
+      - clear
+
+    2:  
+      - put  
+      - remove  
+  
+    3:  
+      - get  
+      - haskey  
+      - hasvalue  
+
+    4:  
+      - list  
+      - list keys  
+      - list values  
+      - size  
+      - quit  
 
 ## Protocol
 

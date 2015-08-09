@@ -13,12 +13,13 @@ import (
 
 const (
 	MAX_CLIENTS = 10000
+	VERBOSITY   = yakvs.MIN_VERBOSITY
 )
 
 func main() {
 	fMaxClients := flag.Int("maxclients", MAX_CLIENTS, "")
 	fMaxProcs := flag.Int("maxprocs", runtime.NumCPU(), "")
-	fVerbose := flag.Bool("verbose", false, "")
+	fVerbosity := flag.Int("verbosity", VERBOSITY, "")
 
 	flag.Parse()
 
@@ -27,7 +28,7 @@ func main() {
 		fmt.Println("Options:")
 		fmt.Println("  -maxclients=<number>")
 		fmt.Println("  -maxprocs=<number>")
-		fmt.Println("  -verbose=<true|false>")
+		fmt.Println("  -verbosity=<number>")
 		return
 	}
 
@@ -41,7 +42,7 @@ func main() {
 
 	maxClients := *fMaxClients
 	maxProcs := *fMaxProcs
-	verbose := *fVerbose
+	verbosity := *fVerbosity
 
 	if maxClients < 1 {
 		fmt.Println("maxclients must be > 0, using default")
@@ -53,9 +54,14 @@ func main() {
 		maxProcs = runtime.NumCPU()
 	}
 
+	if verbosity < yakvs.MIN_VERBOSITY || verbosity > yakvs.MAX_VERBOSITY {
+		fmt.Println("verbosity must be > 0 and < ", yakvs.MAX_VERBOSITY+1)
+		verbosity = VERBOSITY
+	}
+
 	runtime.GOMAXPROCS(maxProcs)
 
-	server := yakvs.NewServer(port, maxClients, verbose)
+	server := yakvs.NewServer(port, maxClients, verbosity)
 	go server.Start()
 
 	c := make(chan os.Signal, 1)

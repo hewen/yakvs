@@ -369,6 +369,7 @@ func (c *connection) serve() {
 					buf.WriteString(ERROR)
 				} else {
 					buf.WriteString(BYE)
+					c.send <- buf.Bytes()
 					return
 				}
 				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") quit")

@@ -46,16 +46,19 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
     LIST
     Returns:
       KVPs - the key-value mappings in the store
+      nil - there are no key-value mappings in the store
       ERROR - too many arguments
 
     LIST KEYS
     Returns:
       KEYS - the keys in the store
+      nil - there are no key-value mappings in the store
       ERROR - incorrect arguments
 
     LIST VALUES
     Returns:
       VALUES - the values in the store
+      nil - there are no key-value mappings in the store
       ERROR - incorrect arguments
 
     QUIT

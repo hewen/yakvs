@@ -204,28 +204,33 @@ func (c *connection) serve() {
 				if len(split) == 1 || len(split) == 2 { 
 					keys, values := c.s.List()	
 					size := c.s.Size()
-					var buf bytes.Buffer
 
-					if len(split) == 1 {
-						for i := 0; i < size; i++ {
-							buf.WriteString(keys[i] + "=" + values[i] + "\n")
-						}
+					if size == 0 {
+						c.send <- []byte("nil\n")
 					} else {
-						switch split[1] {
-						case "KEYS":
-							for i := 0; i < size; i++ {
-								buf.WriteString(keys[i] + "\n")
-							}
-						case "VALUES":
-							for i := 0; i < size; i++ {
-							buf.WriteString(values[i] + "\n")
-						}
-						default:
-							buf.WriteString("ERROR\n")
-						}
-					}
+						var buf bytes.Buffer
 
-					c.send <- buf.Bytes()
+						if len(split) == 1 {
+							for i := 0; i < size; i++ {
+								buf.WriteString(keys[i] + "=" + values[i] + "\n")
+							}
+						} else {
+							switch split[1] {
+							case "KEYS":
+								for i := 0; i < size; i++ {
+									buf.WriteString(keys[i] + "\n")
+								}
+							case "VALUES":
+								for i := 0; i < size; i++ {
+								buf.WriteString(values[i] + "\n")
+							}
+							default:
+								buf.WriteString("ERROR\n")
+							}
+						}
+
+						c.send <- buf.Bytes()
+					}
 				} else {
 					c.send <- []byte("ERROR\n")
 				}

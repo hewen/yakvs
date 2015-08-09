@@ -55,7 +55,7 @@ func main() {
 	}
 
 	if verbosity < yakvs.MIN_VERBOSITY || verbosity > yakvs.MAX_VERBOSITY {
-		fmt.Println("verbosity must be > 0 and < ", yakvs.MAX_VERBOSITY+1)
+		fmt.Println("verbosity must be > 0 and < ", yakvs.MAX_VERBOSITY + 1, "using default")
 		verbosity = VERBOSITY
 	}
 

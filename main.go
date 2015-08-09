@@ -11,6 +11,8 @@ import (
 )
 
 func main() {
+	fMaxClients := flag.Int("maxclients", 10000, "")
+
 	flag.Parse()
 
 	if flag.NArg() != 1 {
@@ -26,7 +28,13 @@ func main() {
 		return
 	}
 
-	server := yakvs.NewServer()
+	maxClients := *fMaxClients
+	if maxClients < 1 {
+		fmt.Println("maxclients must be > 0")
+		return 
+	}
+
+	server := yakvs.NewServer(maxClients)
 	go server.Start(port)
 
 	c := make(chan os.Signal, 1)

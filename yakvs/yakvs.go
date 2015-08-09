@@ -12,13 +12,19 @@ import (
 
 type Server struct {
 	listener *net.TCPListener
+	
 	data map[string]string
 	dataLock *sync.RWMutex
+	
 	logger *log.Logger
+	
 	connectionsLock *sync.RWMutex
 	connections map[uint64]*connection
-	acceptConnectionsLock *sync.Mutex
-	acceptConnections bool
+	
+	runningLock *sync.Mutex
+	running bool
+
+	maxClients int
 }
 
 type connection struct {
@@ -28,14 +34,15 @@ type connection struct {
 	recv <-chan byte
 }
 
-func NewServer() *Server {
+func NewServer(maxClients int) *Server {
 	s := new(Server)
 	s.data = make(map[string]string)
 	s.dataLock = new(sync.RWMutex)
 	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate | log.Ltime)
 	s.connectionsLock = new(sync.RWMutex)
 	s.connections = make(map[uint64]*connection)
-	s.acceptConnectionsLock = new(sync.Mutex)
+	s.runningLock = new(sync.Mutex)
+	s.maxClients = maxClients
 	return s
 }
 
@@ -45,15 +52,18 @@ func (s *Server) Start(port int) {
 		panic(err)
 	}
 	s.listener = listener
-	s.acceptConnections = true
-	s.logger.Println("started yakvs server on port " + strconv.Itoa(port))
+
+	s.runningLock.Lock()
+	s.running = true
+	s.runningLock.Unlock()
+
 	s.listen()
 }
 
 func (s *Server) Stop() {	
-	s.acceptConnectionsLock.Lock()
-	s.acceptConnections = false
-	s.acceptConnectionsLock.Unlock()
+	s.runningLock.Lock()
+	s.running = false
+	s.runningLock.Unlock()
 
 	conns := make([]*connection, 0)
 
@@ -150,6 +160,8 @@ func (s *Server) listen() {
 		}
 	}()
 
+	s.logger.Println("yakvs server started")
+
 	var cid uint64
 	var eof bool
 	for !eof {
@@ -159,11 +171,19 @@ func (s *Server) listen() {
 		} else if err != nil {
 			s.logger.Panic(err)
 		} else {
-			s.acceptConnectionsLock.Lock()
-			shouldAccept := s.acceptConnections
-			s.acceptConnectionsLock.Unlock()
+			s.runningLock.Lock()
+			isRunning := s.running
+			s.runningLock.Unlock()
 
-			if shouldAccept {
+			if !isRunning {
+				return
+			}
+
+			s.connectionsLock.RLock()
+			activeConnections := len(s.connections)
+			s.connectionsLock.RUnlock()
+
+			if activeConnections < s.maxClients {
 				send := netutils.TCPWriter(conn, errors)
 				recv := netutils.TCPReader(conn, errors)
 				go s.acceptConnection(cid, send, recv).serve()
@@ -174,7 +194,7 @@ func (s *Server) listen() {
 				conn.Write([]byte("CONNECTION DENIED\n"))
 				conn.Close()
 
-				s.logger.Println("ignored connection from " + conn.RemoteAddr().String())	
+				s.logger.Println("ignored connection from " + conn.RemoteAddr().String())						
 			}
 		}
 	}

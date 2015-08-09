@@ -187,9 +187,10 @@ func (s *Server) listen() {
 				send := netutils.TCPWriter(conn, errors)
 				recv := netutils.TCPReader(conn, errors)
 				go s.acceptConnection(cid, send, recv).serve()
-				cid++
-
+				
 				s.logger.Println("accepted connection " + strconv.FormatUint(cid, 10) + "@" + conn.RemoteAddr().String())
+
+				cid++
 			} else {
 				conn.Write([]byte("CONNECTION DENIED\n"))
 				conn.Close()

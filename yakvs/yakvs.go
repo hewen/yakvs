@@ -1,4 +1,4 @@
-// Package yakvs provides a network-based, in-memory, key-value store
+// Package yakvs provides a network-based, in-memory, key-value store.
 package yakvs
 
 import (
@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-// Server represents a networked, in-memory, key-value store
+// Server represents a networked, in-memory, key-value store.
 type Server struct {
 	listener *net.TCPListener
 
@@ -36,8 +36,8 @@ type connection struct {
 	recv <-chan byte
 }
 
-// NewServer creates a new key-value store
-// maxClients is the maximum number of active connections the server will allow
+// NewServer creates a new key-value store.
+// maxClients is the maximum number of active connections the server will allow.
 func NewServer(maxClients int) *Server {
 	s := new(Server)
 	s.data = make(map[string]string)
@@ -50,8 +50,8 @@ func NewServer(maxClients int) *Server {
 	return s
 }
 
-// Start starts the network listener on the store
-// port is the port the TCP listener will be started on
+// Start starts the network listener on the store.
+// port is the port the TCP listener will be started on.
 // This method blocks while the server is running.
 func (s *Server) Start(port int) {
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
@@ -67,7 +67,7 @@ func (s *Server) Start(port int) {
 	s.listen()
 }
 
-// Stop starts the server, closing all connections
+// Stop starts the server, closing all connections.
 func (s *Server) Stop() {
 	s.runningLock.Lock()
 	s.running = false
@@ -92,7 +92,7 @@ func (s *Server) Stop() {
 	s.logger.Println("stopped")
 }
 
-// Put adds a mapping from the specified value to the specified key
+// Put adds a mapping from the specified value to the specified key.
 func (s *Server) Put(key, value string) {
 	s.dataLock.Lock()
 	defer s.dataLock.Unlock()
@@ -100,7 +100,7 @@ func (s *Server) Put(key, value string) {
 	s.data[key] = value
 }
 
-// Get returns the value mapped to the specified key, or nil, as well as true if the mapping exists
+// Get returns the value mapped to the specified key, or nil, as well as true if the mapping exists.
 func (s *Server) Get(key string) (value string, has bool) {
 	s.dataLock.RLock()
 	defer s.dataLock.RUnlock()
@@ -109,13 +109,13 @@ func (s *Server) Get(key string) (value string, has bool) {
 	return
 }
 
-// HasKey returns true if the specified key has a mapping in this store
+// HasKey returns true if the specified key has a mapping in this store.
 func (s *Server) HasKey(key string) bool {
 	_, has := s.Get(key)
 	return has
 }
 
-// HasValue returns true if the specified value has a mapping in this store
+// HasValue returns true if the specified value has a mapping in this store.
 func (s *Server) HasValue(value string) bool {
 	s.dataLock.RLock()
 	defer s.dataLock.RUnlock()
@@ -129,8 +129,8 @@ func (s *Server) HasValue(value string) bool {
 	return false
 }
 
-// Remove deletes a key-value mapping from this store
-// If the specified key does not have a mapping, nothing happens
+// Remove deletes a key-value mapping from this store.
+// If the specified key does not have a mapping, nothing happens.
 func (s *Server) Remove(key string) {
 	s.dataLock.Lock()
 	defer s.dataLock.Unlock()
@@ -138,7 +138,7 @@ func (s *Server) Remove(key string) {
 	delete(s.data, key)
 }
 
-// Clear removes all key-value mappings from this store
+// Clear removes all key-value mappings from this store.
 func (s *Server) Clear() {
 	s.dataLock.Lock()
 	defer s.dataLock.Unlock()
@@ -146,7 +146,7 @@ func (s *Server) Clear() {
 	s.data = make(map[string]string)
 }
 
-// List returns a slice containig all keys in this store, a slice containing all values in this store, and the size of the store
+// List returns a slice containig all keys in this store, a slice containing all values in this store, and the size of the store.
 func (s *Server) List() (keys []string, values []string, size int) {
 	s.dataLock.RLock()
 	defer s.dataLock.RUnlock()
@@ -162,7 +162,7 @@ func (s *Server) List() (keys []string, values []string, size int) {
 	return
 }
 
-// Size returns the number of key-value mappings in this store
+// Size returns the number of key-value mappings in this store.
 func (s *Server) Size() int {
 	s.dataLock.RLock()
 	defer s.dataLock.RUnlock()

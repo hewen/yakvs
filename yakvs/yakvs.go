@@ -17,6 +17,12 @@ type server struct {
 	logger *log.Logger
 }
 
+type connection struct {
+	s *server
+	send chan<- []byte
+	recv <-chan byte
+}
+
 func NewServer() *server {
 	s := new(server)
 	s.data = make(map[string]string)
@@ -34,7 +40,7 @@ func (s *server) Start(port int) {
 	s.listen()
 }
 
-func (s *server) Close() {
+func (s *server) Stop() {
 	s.listener.Close()
 }
 
@@ -94,12 +100,6 @@ func (s *server) listen() {
 			go s.acceptConnection(send, recv).serve()
 		}
 	}
-}
-
-type connection struct {
-	s *server
-	send chan<- []byte
-	recv <-chan byte
 }
 
 func (s *server) acceptConnection(send chan<- []byte, recv <-chan byte) *connection {

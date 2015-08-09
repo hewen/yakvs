@@ -35,12 +35,14 @@ YAKVS uses a text-based TCP protocol. Commands and results are newline delimited
     Returns:
       TRUE - store contains a mapping for the key
       FALSE - store contains no mapping for the key
+      ERROR - incorrect arguments
 
     HASVALUE <value>
     Returns true if this store contains a mapping for the specified value
     Returns:
       TRUE - store contains a mapping for the value
       FALSE - store contains no mapping for the value
+      ERROR - incorrect arguments
 
     REMOVE <key>
     Removes the mapping for the specified key from this map if present

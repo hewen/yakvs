@@ -210,7 +210,7 @@ func (s *Server) listen() {
 
 				cid++
 			} else {
-				conn.Write([]byte("CONNECTION DENIED\n"))
+				conn.Write([]byte("CONNECTION REFUSED\n"))
 				conn.Close()
 
 				s.logger.Println("ignored connection from " + conn.RemoteAddr().String())

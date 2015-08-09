@@ -2,34 +2,34 @@ package yakvs
 
 import (
 	"bytes"
-	"net"
-	"sync"
-	"strconv"
-	"log"
-	"os"
 	"github.com/timtadh/netutils"
+	"log"
+	"net"
+	"os"
+	"strconv"
+	"sync"
 )
 
 type Server struct {
 	listener *net.TCPListener
-	
-	data map[string]string
+
+	data     map[string]string
 	dataLock *sync.RWMutex
-	
+
 	logger *log.Logger
-	
+
 	connectionsLock *sync.RWMutex
-	connections map[uint64]*connection
-	
+	connections     map[uint64]*connection
+
 	runningLock *sync.Mutex
-	running bool
+	running     bool
 
 	maxClients int
 }
 
 type connection struct {
-	cid uint64
-	s *Server
+	cid  uint64
+	s    *Server
 	send chan<- []byte
 	recv <-chan byte
 }
@@ -38,7 +38,7 @@ func NewServer(maxClients int) *Server {
 	s := new(Server)
 	s.data = make(map[string]string)
 	s.dataLock = new(sync.RWMutex)
-	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate | log.Ltime)
+	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate|log.Ltime)
 	s.connectionsLock = new(sync.RWMutex)
 	s.connections = make(map[uint64]*connection)
 	s.runningLock = new(sync.Mutex)
@@ -60,7 +60,7 @@ func (s *Server) Start(port int) {
 	s.listen()
 }
 
-func (s *Server) Stop() {	
+func (s *Server) Stop() {
 	s.runningLock.Lock()
 	s.running = false
 	s.runningLock.Unlock()
@@ -88,7 +88,7 @@ func (s *Server) Put(key, value string) {
 	s.dataLock.Lock()
 	defer s.dataLock.Unlock()
 
-	s.data[key] = value	
+	s.data[key] = value
 }
 
 func (s *Server) Get(key string) (value string, has bool) {
@@ -143,7 +143,7 @@ func (s *Server) List() (keys []string, values []string) {
 		values = append(values, value)
 	}
 	return
-}	
+}
 
 func (s *Server) Size() int {
 	s.dataLock.RLock()
@@ -194,7 +194,7 @@ func (s *Server) listen() {
 				conn.Write([]byte("CONNECTION DENIED\n"))
 				conn.Close()
 
-				s.logger.Println("ignored connection from " + conn.RemoteAddr().String())						
+				s.logger.Println("ignored connection from " + conn.RemoteAddr().String())
 			}
 		}
 	}
@@ -202,8 +202,8 @@ func (s *Server) listen() {
 
 func (s *Server) acceptConnection(cid uint64, send chan<- []byte, recv <-chan byte) *connection {
 	conn := &connection{
-		cid: cid,
-		s: s,
+		cid:  cid,
+		s:    s,
 		send: send,
 		recv: recv,
 	}
@@ -221,11 +221,11 @@ func (c *connection) serve() {
 
 	const (
 		ERROR = "ERROR\n"
-		OK = "OK\n"
-		TRUE = "TRUE\n"
+		OK    = "OK\n"
+		TRUE  = "TRUE\n"
 		FALSE = "FALSE\n"
-		NIL = "nil\n"
-		BYE = "BYE\n"
+		NIL   = "nil\n"
+		BYE   = "BYE\n"
 	)
 
 	for line := range netutils.Readlines(c.recv) {
@@ -260,7 +260,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(NIL)
 					}
-					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") get", split[1])
+					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") get", split[1])
 				}
 			case "HASKEY":
 				if len(split) != 2 {
@@ -271,8 +271,8 @@ func (c *connection) serve() {
 						buf.WriteString(TRUE)
 					} else {
 						buf.WriteString(FALSE)
-					}	
-					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") haskey", split[1])
+					}
+					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") haskey", split[1])
 				}
 			case "HASVALUE":
 				if len(split) != 2 {
@@ -284,7 +284,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(FALSE)
 					}
-					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") hasvalue", split[1])
+					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") hasvalue", split[1])
 				}
 			case "REMOVE":
 				if len(split) != 2 {
@@ -292,7 +292,7 @@ func (c *connection) serve() {
 				} else {
 					c.s.Remove(split[1])
 					buf.WriteString(OK)
-					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") remove", split[1])
+					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") remove", split[1])
 				}
 			case "SIZE":
 				if len(split) != 1 {
@@ -310,8 +310,8 @@ func (c *connection) serve() {
 					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") clear")
 				}
 			case "LIST":
-				if len(split) == 1 || len(split) == 2 { 
-					keys, values := c.s.List()	
+				if len(split) == 1 || len(split) == 2 {
+					keys, values := c.s.List()
 					size := c.s.Size()
 
 					if size == 0 {
@@ -369,4 +369,4 @@ func (c *connection) close() {
 	close(c.send)
 	<-c.recv
 	c.s.logger.Println("connection", c.cid, "closed")
-}	
+}

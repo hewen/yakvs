@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"strconv"
+	"github.com/sci4me/yakvs/yakvs"
 	"os"
 	"os/signal"
-	"syscall"
 	"runtime"
-	"github.com/sci4me/yakvs/yakvs"
+	"strconv"
+	"syscall"
 )
 
 const (

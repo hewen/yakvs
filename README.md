@@ -10,8 +10,9 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 
     yakvs <port>
     Options:  
-      -maxclients <number> (default = 10000)
-      -maxprocs <number> (default = runtime.NumCPU())
+      -maxclients=<number> (default = 10000)
+      -maxprocs=<number> (default = runtime.NumCPU())  
+      -verbose=<true|false> (default = false)
 
 ## Protocol
 

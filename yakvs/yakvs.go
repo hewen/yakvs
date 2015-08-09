@@ -13,6 +13,7 @@ import (
 
 // Server represents a networked, in-memory, key-value store.
 type Server struct {
+	port int
 	listener *net.TCPListener
 
 	data     map[string]string
@@ -27,6 +28,7 @@ type Server struct {
 	running     bool
 
 	maxClients int
+	verbose bool
 }
 
 type connection struct {
@@ -37,9 +39,12 @@ type connection struct {
 }
 
 // NewServer creates a new key-value store.
+// port is the port the TCP listener will be started on.
 // maxClients is the maximum number of active connections the server will allow.
-func NewServer(maxClients int) *Server {
+// verbose is whether the logging of the server will be verbose or not.
+func NewServer(port, maxClients int, verbose bool) *Server {
 	s := new(Server)
+	s.port = port
 	s.data = make(map[string]string)
 	s.dataLock = new(sync.RWMutex)
 	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate|log.Ltime)
@@ -47,14 +52,14 @@ func NewServer(maxClients int) *Server {
 	s.connections = make(map[uint64]*connection)
 	s.runningLock = new(sync.Mutex)
 	s.maxClients = maxClients
+	s.verbose = verbose
 	return s
 }
 
 // Start starts the network listener on the store.
-// port is the port the TCP listener will be started on.
 // This method blocks while the server is running.
-func (s *Server) Start(port int) {
-	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
+func (s *Server) Start() {
+	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: s.port})
 	if err != nil {
 		panic(err)
 	}
@@ -270,7 +275,7 @@ func (c *connection) serve() {
 				} else {
 					c.s.Put(split[1], split[2])
 					buf.WriteString(OK)
-					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") put " + split[1] + "=" + split[2])
+					if c.s.verbose { c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") put " + split[1] + "=" + split[2]) }
 				}
 			case "GET":
 				if len(split) != 2 {
@@ -282,7 +287,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(NIL)
 					}
-					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") get", split[1])
+					if c.s.verbose { c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") get", split[1]) }
 				}
 			case "HASKEY":
 				if len(split) != 2 {
@@ -294,7 +299,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(FALSE)
 					}
-					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") haskey", split[1])
+					if c.s.verbose { c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") haskey", split[1]) }
 				}
 			case "HASVALUE":
 				if len(split) != 2 {
@@ -306,7 +311,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(FALSE)
 					}
-					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") hasvalue", split[1])
+					if c.s.verbose { c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") hasvalue", split[1]) }
 				}
 			case "REMOVE":
 				if len(split) != 2 {
@@ -314,7 +319,7 @@ func (c *connection) serve() {
 				} else {
 					c.s.Remove(split[1])
 					buf.WriteString(OK)
-					c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") remove", split[1])
+					if c.s.verbose { c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") remove", split[1]) }
 				}
 			case "SIZE":
 				if len(split) != 1 {
@@ -322,14 +327,14 @@ func (c *connection) serve() {
 				} else {
 					buf.WriteString(strconv.Itoa(c.s.Size()) + "\n")
 				}
-				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") size")
+				if c.s.verbose { c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") size") }
 			case "CLEAR":
 				if len(split) != 1 {
 					buf.WriteString(ERROR)
 				} else {
 					c.s.Clear()
 					buf.WriteString(OK)
-					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") clear")
+					if c.s.verbose { c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") clear") }
 				}
 			case "LIST":
 				if len(split) == 1 || len(split) == 2 {
@@ -343,19 +348,19 @@ func (c *connection) serve() {
 							for i := 0; i < size; i++ {
 								buf.WriteString(keys[i] + "=" + values[i] + "\n")
 							}
-							c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list")
+							if c.s.verbose { c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list") }
 						} else {
 							switch split[1] {
 							case "KEYS":
 								for i := 0; i < size; i++ {
 									buf.WriteString(keys[i] + "\n")
 								}
-								c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list keys")
+								if c.s.verbose { c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list keys") }
 							case "VALUES":
 								for i := 0; i < size; i++ {
 									buf.WriteString(values[i] + "\n")
 								}
-								c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list values")
+								if c.s.verbose { c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list values")}
 							default:
 								buf.WriteString(ERROR)
 							}
@@ -372,7 +377,7 @@ func (c *connection) serve() {
 					c.send <- buf.Bytes()
 					return
 				}
-				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") quit")
+				if c.s.verbose { c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") quit") }
 			default:
 				buf.WriteString(ERROR)
 				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") invalid command")

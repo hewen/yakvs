@@ -18,14 +18,16 @@ const (
 func main() {
 	fMaxClients := flag.Int("maxclients", MAX_CLIENTS, "")
 	fMaxProcs := flag.Int("maxprocs", runtime.NumCPU(), "")
+	fVerbose := flag.Bool("verbose", false, "")
 
 	flag.Parse()
 
 	if flag.NArg() != 1 {
 		fmt.Println("Usage: yakvs <port>")
 		fmt.Println("Options:")
-		fmt.Println("  -maxclients <number>")
-		fmt.Println("  -maxprocs <number>")
+		fmt.Println("  -maxclients=<number>")
+		fmt.Println("  -maxprocs=<number>")
+		fmt.Println("  -verbose=<true|false>")
 		return
 	}
 
@@ -39,6 +41,7 @@ func main() {
 
 	maxClients := *fMaxClients
 	maxProcs := *fMaxProcs
+	verbose := *fVerbose
 
 	if maxClients < 1 {
 		fmt.Println("maxclients must be > 0, using default")
@@ -52,8 +55,8 @@ func main() {
 
 	runtime.GOMAXPROCS(maxProcs)
 
-	server := yakvs.NewServer(maxClients)
-	go server.Start(port)
+	server := yakvs.NewServer(port, maxClients, verbose)
+	go server.Start()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)

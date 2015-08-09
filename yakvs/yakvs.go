@@ -229,7 +229,7 @@ func (c *connection) serve() {
 		WELCOME = "WELCOME\n"
 	)
 
-	c.send <- WELCOME
+	c.send <- []byte(WELCOME)
 
 	for line := range netutils.Readlines(c.recv) {
 		bSplit := bytes.SplitN(line, []byte(" "), -1)

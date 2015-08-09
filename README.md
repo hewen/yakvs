@@ -93,8 +93,8 @@ SERVER STOPPED
 ```
 The connections will then be closed. All connections will be closed in this fashion before the server stops.
 
-If a connection is attempted during the time between the start and end of the Stop() call, the connection will be denied. The client will receive the following message:
+If a connection is attempted while the number of clients connected to the server is equal to the maximum number of clients, the connecting client will receive the following message:
 ```
-CONNECTION DENIED
+CONNECTION REFUSED
 ```
 The connection will then be closed.

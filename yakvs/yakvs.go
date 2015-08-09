@@ -1,4 +1,4 @@
-package main
+package yakvs
 
 import (
 	"bytes"
@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"log"
 	"os"
-	"flag"
-	"fmt"
 	"github.com/timtadh/netutils"
 )
 
@@ -19,7 +17,7 @@ type server struct {
 	logger *log.Logger
 }
 
-func newServer() *server {
+func NewServer() *server {
 	s := new(server)
 	s.data = make(map[string]string)
 	s.lock = new(sync.RWMutex)
@@ -27,7 +25,7 @@ func newServer() *server {
 	return s
 }
 
-func (s *server) start(port int) {
+func (s *server) Start(port int) {
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
 	if err != nil {
 		panic(err)
@@ -36,7 +34,11 @@ func (s *server) start(port int) {
 	s.listen()
 }
 
-func (s *server) put(key, value string) {
+func (s *server) Close() {
+	s.listener.Close()
+}
+
+func (s *server) Put(key, value string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -45,7 +47,7 @@ func (s *server) put(key, value string) {
 	s.data[key] = value	
 }
 
-func (s *server) get(key string) (value string, has bool) {
+func (s *server) Get(key string) (value string, has bool) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -55,7 +57,7 @@ func (s *server) get(key string) (value string, has bool) {
 	return
 }
 
-func (s *server) remove(key string) {
+func (s *server) Remove(key string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -64,7 +66,7 @@ func (s *server) remove(key string) {
 	delete(s.data, key)
 }
 
-func (s *server) size() int {
+func (s *server) Size() int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -130,14 +132,14 @@ func (c *connection) serve() {
 			if len(split) != 3 {
 				c.send <- []byte("ERROR\n")
 			} else {
-				c.s.put(split[1], split[2])
+				c.s.Put(split[1], split[2])
 				c.send <- []byte("OK\n")
 			}
 		case "GET":
 			if len(split) != 2 {
 				c.send <- []byte("ERROR\n")
 			} else {
-				value, has := c.s.get(split[1])
+				value, has := c.s.Get(split[1])
 				if has {
 					c.send <- []byte(value + "\n")
 				} else {
@@ -148,7 +150,7 @@ func (c *connection) serve() {
 			if len(split) != 2 {
 				c.send <- []byte("ERROR\n")
 			} else {
-				_, has := c.s.get(split[1])
+				_, has := c.s.Get(split[1])
 				if has {
 					c.send <- []byte("TRUE\n")
 				} else {
@@ -159,14 +161,14 @@ func (c *connection) serve() {
 			if len(split) != 2 {
 				c.send <- []byte("ERROR\n")
 			} else {
-				c.s.remove(split[1])
+				c.s.Remove(split[1])
 				c.send <- []byte("OK\n")
 			}
 		case "SIZE":
 			if len(split) != 1 {
 				c.send <- []byte("ERROR\n")
 			} else {
-				c.send <- []byte(strconv.Itoa(c.s.size()) + "\n")
+				c.send <- []byte(strconv.Itoa(c.s.Size()) + "\n")
 			}
 		case "QUIT":
 			if len(split) != 1 {
@@ -186,23 +188,3 @@ func (c *connection) close() {
 	<-c.recv
 	c.s.logger.Println("connection closed")
 }	
-
-func main() {
-	flag.Parse()
-
-	if flag.NArg() != 1 {
-		fmt.Println("Usage: yakvs <port>")
-		return
-	}
-
-	sPort := flag.Arg(0)
-
-	port, err := strconv.Atoi(sPort)
-	if err != nil {
-		fmt.Println("error parsing port:", err, "\nUsage: yakvs <port>")
-		return
-	}
-
-	server := newServer()
-	server.start(port)
-}

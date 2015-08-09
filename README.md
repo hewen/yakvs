@@ -12,6 +12,8 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 
 ## Protocol
 
+YAKVS uses a text-based TCP protocol. Commands and results are newline delimited. Here are the supported commands:
+
     PUT <key> <value>
     Returns: 
       OK - success

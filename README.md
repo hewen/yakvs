@@ -14,10 +14,10 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 
 This package implements a TCP network service which exposes an in-memory key-value store to clients. The client can perform the following commands:
 
- - PUT
- - GET
- - HAS
- - REMOVE
+ - PUT &lt;key&gt; &lt;value&gt;
+ - GET &lt;key&gt;
+ - HAS &lt;key&gt;
+ - REMOVE &lt;key&gt;
  - SIZE
  - CLEAR
  - LIST

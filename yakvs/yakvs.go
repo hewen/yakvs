@@ -13,8 +13,11 @@ import (
 type Server struct {
 	listener *net.TCPListener
 	data map[string]string
-	lock *sync.RWMutex
+	dataLock *sync.RWMutex
 	logger *log.Logger
+	connectionsLock *sync.Mutex
+	connections map[uint64]*connection
+	acceptConnections bool
 }
 
 type connection struct {
@@ -27,8 +30,10 @@ type connection struct {
 func NewServer() *Server {
 	s := new(Server)
 	s.data = make(map[string]string)
-	s.lock = new(sync.RWMutex)
+	s.dataLock = new(sync.RWMutex)
 	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate | log.Ltime)
+	s.connectionsLock = new(sync.Mutex)
+	s.connections = make(map[uint64]*connection)
 	return s
 }
 
@@ -38,25 +43,35 @@ func (s *Server) Start(port int) {
 		panic(err)
 	}
 	s.listener = listener
+	s.acceptConnections = true
 	s.logger.Println("started yakvs server on port " + strconv.Itoa(port))
 	s.listen()
 }
 
-func (s *Server) Stop() {
+func (s *Server) Stop() {	
+	s.connectionsLock.Lock()
+	defer s.connectionsLock.Unlock()
+
+	for cid, conn := range s.connections {
+		conn.send <- []byte("SERVER STOPPED\n")
+		conn.close()
+		s.connections[cid] = nil
+	}
+
 	s.listener.Close()
 	s.logger.Println("stopped")
 }
 
 func (s *Server) Put(key, value string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.dataLock.Lock()
+	defer s.dataLock.Unlock()
 
 	s.data[key] = value	
 }
 
 func (s *Server) Get(key string) (value string, has bool) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.dataLock.RLock()
+	defer s.dataLock.RUnlock()
 
 	value, has = s.data[key]
 	return
@@ -68,8 +83,8 @@ func (s *Server) HasKey(key string) bool {
 }
 
 func (s *Server) HasValue(value string) bool {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.dataLock.RLock()
+	defer s.dataLock.RUnlock()
 
 	for _, v := range s.data {
 		if v == value {
@@ -81,22 +96,22 @@ func (s *Server) HasValue(value string) bool {
 }
 
 func (s *Server) Remove(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.dataLock.Lock()
+	defer s.dataLock.Unlock()
 
 	delete(s.data, key)
 }
 
 func (s *Server) Clear() {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.dataLock.Lock()
+	defer s.dataLock.Unlock()
 
 	s.data = make(map[string]string)
 }
 
 func (s *Server) List() (keys []string, values []string) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.dataLock.RLock()
+	defer s.dataLock.RUnlock()
 
 	keys = make([]string, 0)
 	values = make([]string, 0)
@@ -109,8 +124,8 @@ func (s *Server) List() (keys []string, values []string) {
 }	
 
 func (s *Server) Size() int {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.dataLock.RLock()
+	defer s.dataLock.RUnlock()
 
 	return len(s.data)
 }
@@ -124,7 +139,6 @@ func (s *Server) listen() {
 	}()
 
 	var cid uint64
-
 	var eof bool
 	for !eof {
 		conn, err := s.listener.AcceptTCP()
@@ -133,23 +147,37 @@ func (s *Server) listen() {
 		} else if err != nil {
 			s.logger.Panic(err)
 		} else {
-			s.logger.Println("accepted connection " + strconv.FormatUint(cid, 10) + "@" + conn.RemoteAddr().String())
+			if s.acceptConnections {
+				send := netutils.TCPWriter(conn, errors)
+				recv := netutils.TCPReader(conn, errors)
+				go s.acceptConnection(cid, send, recv).serve()
+				cid++
 
-			send := netutils.TCPWriter(conn, errors)
-			recv := netutils.TCPReader(conn, errors)
-			go s.acceptConnection(cid, send, recv).serve()
-			cid++
+				s.logger.Println("accepted connection " + strconv.FormatUint(cid, 10) + "@" + conn.RemoteAddr().String())
+			} else {
+				conn.Write([]byte("CONNECTION DENIED\n"))
+				conn.Close()
+
+				s.logger.Println("ignored connection from " + conn.RemoteAddr().String())	
+			}
 		}
 	}
 }
 
 func (s *Server) acceptConnection(cid uint64, send chan<- []byte, recv <-chan byte) *connection {
-	return &connection{
+	conn := &connection{
 		cid: cid,
 		s: s,
 		send: send,
 		recv: recv,
 	}
+
+	s.connectionsLock.Lock()
+	defer s.connectionsLock.Unlock()
+
+	s.connections[cid] = conn
+
+	return conn
 }
 
 func (c *connection) serve() {

@@ -83,3 +83,15 @@ YAKVS uses a text-based TCP protocol. Commands and results are newline delimited
     Returns:
       BYE - success
       ERROR - incorrect arguments
+
+If the server is stopped while there are active connections, the following message will be sent to the connections:
+```
+SERVER STOPPED
+```
+The connections will then be closed. All connections will be closed in this fashion before the server stops.
+
+If a connection is attempted during the time between the start and end of the Stop() call, the connection will be denied. The client will receive the following message:
+```
+CONNECTION DENIED
+```
+The connection will then be closed.

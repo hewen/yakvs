@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
+	"os"
+	"os/signal"
+	"syscall"
 	"github.com/sci4me/yakvs/yakvs"
 )
 
@@ -24,5 +27,12 @@ func main() {
 	}
 
 	server := yakvs.NewServer()
-	server.Start(port)
+	go server.Start(port)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, syscall.SIGTERM)
+	<-c
+
+	server.Stop()
 }

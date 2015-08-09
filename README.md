@@ -15,55 +15,71 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 YAKVS uses a text-based TCP protocol. Commands and results are newline delimited. Here are the supported commands:
 
     PUT <key> <value>
+    Associates the specified value with the specified key in the store
     Returns: 
       OK - success
       ERROR - incorrect arguments
 
     GET <key>
+    Returns the value to which the specified key is mapped
     Returns:
       VALUE - the value to which the specified key is mapped
       nil - store contains no mapping for the key
       ERROR - incorrect arguments
 
-    HAS <key>
+    HASKEY <key>
+    Returns true if this store contains a mapping for the specified key
     Returns:
       TRUE - store contains a mapping for the key
       FALSE - store contains no mapping for the key
 
+    HASVALUE <value>
+    Returns true if this store contains a mapping for the specified value
+    Returns:
+      TRUE - store contains a mapping for the value
+      FALSE - store contains no mapping for the value
+
     REMOVE <key>
+    Removes the mapping for the specified key from this map if present
     Returns:
       OK - success
       ERROR - incorrect arguments
 
     SIZE
+    Returns the number of key-value mappings in this store
     Returns:
       SIZE - the number of key-value mappings in this store
       ERROR - too many arguments
 
     CLEAR
+    Removes all of the mappings from this store
     Returns:
       OK - success
       ERROR - too many arguments
 
     LIST
+    Lists the key-value mappings in this store
     Returns:
       KVPs - the key-value mappings in the store
       nil - there are no key-value mappings in the store
       ERROR - too many arguments
 
     LIST KEYS
+    Lists the keys in this store
     Returns:
       KEYS - the keys in the store
       nil - there are no key-value mappings in the store
       ERROR - incorrect arguments
 
     LIST VALUES
+    Lists the values in this store
     Returns:
       VALUES - the values in the store
       nil - there are no key-value mappings in the store
       ERROR - incorrect arguments
 
     QUIT
+    Closes the connection
     Returns:
-      OK - success
+      BYE - success
       ERROR - incorrect arguments

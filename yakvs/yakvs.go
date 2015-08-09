@@ -65,6 +65,24 @@ func (s *Server) Get(key string) (value string, has bool) {
 	return
 }
 
+func (s *Server) HasKey(key string) bool {
+	_, has := s.Get(key)
+	return has
+}
+
+func (s *Server) HasValue(value string) bool {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	for _, v := range s.data {
+		if v == value {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *Server) Remove(key string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -169,16 +187,27 @@ func (c *connection) serve() {
 						c.send <- []byte("nil\n")
 					}
 				}
-			case "HAS":
+			case "HASKEY":
 				if len(split) != 2 {
 					c.send <- []byte("ERROR\n")
 				} else {
-					_, has := c.s.Get(split[1])
+					has := c.s.HasKey(split[1])
 					if has {
 						c.send <- []byte("TRUE\n")
 					} else {
 						c.send <- []byte("FALSE\n")
 					}	
+				}
+			case "HASVALUE":
+				if len(split) != 2 {
+					c.send <- []byte("ERROR\n")
+				} else {
+					has := c.s.HasValue(split[1])
+					if has {
+						c.send <- []byte("TRUE\n")
+					} else {
+						c.send <- []byte("FALSE\n")
+					}
 				}
 			case "REMOVE":
 				if len(split) != 2 {

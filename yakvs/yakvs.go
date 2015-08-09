@@ -15,8 +15,9 @@ type Server struct {
 	data map[string]string
 	dataLock *sync.RWMutex
 	logger *log.Logger
-	connectionsLock *sync.Mutex
+	connectionsLock *sync.RWMutex
 	connections map[uint64]*connection
+	acceptConnectionsLock *sync.Mutex
 	acceptConnections bool
 }
 
@@ -32,8 +33,9 @@ func NewServer() *Server {
 	s.data = make(map[string]string)
 	s.dataLock = new(sync.RWMutex)
 	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate | log.Ltime)
-	s.connectionsLock = new(sync.Mutex)
+	s.connectionsLock = new(sync.RWMutex)
 	s.connections = make(map[uint64]*connection)
+	s.acceptConnectionsLock = new(sync.Mutex)
 	return s
 }
 
@@ -49,13 +51,23 @@ func (s *Server) Start(port int) {
 }
 
 func (s *Server) Stop() {	
-	s.connectionsLock.Lock()
-	defer s.connectionsLock.Unlock()
+	s.acceptConnectionsLock.Lock()
+	s.acceptConnections = false
+	s.acceptConnectionsLock.Unlock()
 
-	for cid, conn := range s.connections {
+	conns := make([]*connection, 0)
+
+	s.connectionsLock.RLock()
+	for _, conn := range s.connections {
+		conns = append(conns, conn)
+	}
+	s.connectionsLock.RUnlock()
+
+	for i := 0; i < len(conns); i++ {
+		conn := conns[i]
+
 		conn.send <- []byte("SERVER STOPPED\n")
 		conn.close()
-		s.connections[cid] = nil
 	}
 
 	s.listener.Close()
@@ -147,7 +159,11 @@ func (s *Server) listen() {
 		} else if err != nil {
 			s.logger.Panic(err)
 		} else {
-			if s.acceptConnections {
+			s.acceptConnectionsLock.Lock()
+			shouldAccept := s.acceptConnections
+			s.acceptConnectionsLock.Unlock()
+
+			if shouldAccept {
 				send := netutils.TCPWriter(conn, errors)
 				recv := netutils.TCPReader(conn, errors)
 				go s.acceptConnection(cid, send, recv).serve()
@@ -325,6 +341,11 @@ func (c *connection) serve() {
 }
 
 func (c *connection) close() {
+	c.s.connectionsLock.Lock()
+	defer c.s.connectionsLock.Unlock()
+
+	delete(c.s.connections, c.cid)
+
 	close(c.send)
 	<-c.recv
 	c.s.logger.Println("connection", c.cid, "closed")

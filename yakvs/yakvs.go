@@ -117,68 +117,67 @@ func (c *connection) serve() {
 	for line := range netutils.Readlines(c.recv) {
 		bSplit := bytes.SplitN(line, []byte(" "), -1)
 
-		split := make([]string, 0)
-		for _, b := range bSplit {
-			split = append(split, string(bytes.TrimSpace(b)))
-		}
-
-		if len(split) < 1 {
+		if len(bSplit) < 1 {
 			c.send <- []byte("ERROR\n")
-			return
-		}
-
-		switch split[0] {
-		case "PUT":
-			if len(split) != 3 {
-				c.send <- []byte("ERROR\n")
-			} else {
-				c.s.Put(split[1], split[2])
-				c.send <- []byte("OK\n")
+		} else {
+			split := make([]string, 0)
+			for _, b := range bSplit {
+				split = append(split, string(bytes.TrimSpace(b)))
 			}
-		case "GET":
-			if len(split) != 2 {
-				c.send <- []byte("ERROR\n")
-			} else {
-				value, has := c.s.Get(split[1])
-				if has {
-					c.send <- []byte(value + "\n")
+
+			switch split[0] {
+			case "PUT":
+				if len(split) != 3 {
+					c.send <- []byte("ERROR\n")
 				} else {
-					c.send <- []byte("nil\n")
+					c.s.Put(split[1], split[2])
+					c.send <- []byte("OK\n")
 				}
-			}
-		case "HAS":
-			if len(split) != 2 {
-				c.send <- []byte("ERROR\n")
-			} else {
-				_, has := c.s.Get(split[1])
-				if has {
-					c.send <- []byte("TRUE\n")
+			case "GET":
+				if len(split) != 2 {
+					c.send <- []byte("ERROR\n")
 				} else {
-					c.send <- []byte("FALSE\n")
-				}	
-			}
-		case "REMOVE":
-			if len(split) != 2 {
+					value, has := c.s.Get(split[1])
+					if has {
+						c.send <- []byte(value + "\n")
+					} else {
+						c.send <- []byte("nil\n")
+					}
+				}
+			case "HAS":
+				if len(split) != 2 {
+					c.send <- []byte("ERROR\n")
+				} else {
+					_, has := c.s.Get(split[1])
+					if has {
+						c.send <- []byte("TRUE\n")
+					} else {
+						c.send <- []byte("FALSE\n")
+					}	
+				}
+			case "REMOVE":
+				if len(split) != 2 {
+					c.send <- []byte("ERROR\n")
+				} else {
+					c.s.Remove(split[1])
+					c.send <- []byte("OK\n")
+				}
+			case "SIZE":
+				if len(split) != 1 {
+					c.send <- []byte("ERROR\n")
+				} else {
+					c.send <- []byte(strconv.Itoa(c.s.Size()) + "\n")
+				}
+			case "QUIT":
+				if len(split) != 1 {
+					c.send <- []byte("ERROR\n")
+				} else {
+					c.send <- []byte("BYE\n")
+					return
+				}
+			default:
 				c.send <- []byte("ERROR\n")
-			} else {
-				c.s.Remove(split[1])
-				c.send <- []byte("OK\n")
 			}
-		case "SIZE":
-			if len(split) != 1 {
-				c.send <- []byte("ERROR\n")
-			} else {
-				c.send <- []byte(strconv.Itoa(c.s.Size()) + "\n")
-			}
-		case "QUIT":
-			if len(split) != 1 {
-				c.send <- []byte("ERROR\n")
-			} else {
-				c.send <- []byte("BYE\n")
-				return
-			}
-		default:
-			c.send <- []byte("ERROR\n")
 		}
 	}
 }

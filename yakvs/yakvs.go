@@ -67,7 +67,7 @@ func (s *Server) Start(port int) {
 	s.listen()
 }
 
-// Stop starts the server, closing all connections.
+// Stop stops the server, closing all connections.
 func (s *Server) Stop() {
 	s.runningLock.Lock()
 	s.running = false

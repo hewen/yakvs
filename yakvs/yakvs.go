@@ -236,7 +236,7 @@ func (c *connection) serve() {
 				} else {
 					buf.WriteString(strconv.Itoa(c.s.Size()) + "\n")
 				}
-				c.s.logger.Println("size")
+				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") size")
 			case "CLEAR":
 				if len(split) != 1 {
 					buf.WriteString(ERROR)
@@ -285,7 +285,7 @@ func (c *connection) serve() {
 					buf.WriteString(BYE)
 					return
 				}
-				c.s.logger.Println("quit")
+				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") quit")
 			default:
 				buf.WriteString(ERROR)
 				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") invalid command")

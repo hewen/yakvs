@@ -18,6 +18,7 @@ type Server struct {
 }
 
 type connection struct {
+	cid uint64
 	s *Server
 	send chan<- []byte
 	recv <-chan byte
@@ -37,7 +38,7 @@ func (s *Server) Start(port int) {
 		panic(err)
 	}
 	s.listener = listener
-	s.logger.Println("started")
+	s.logger.Println("started yakvs server on port " + strconv.Itoa(port))
 	s.listen()
 }
 
@@ -122,6 +123,8 @@ func (s *Server) listen() {
 		}
 	}()
 
+	var cid uint64
+
 	var eof bool
 	for !eof {
 		conn, err := s.listener.AcceptTCP()
@@ -130,16 +133,19 @@ func (s *Server) listen() {
 		} else if err != nil {
 			s.logger.Panic(err)
 		} else {
+			s.logger.Println("accepted connection " + strconv.FormatUint(cid, 10) + "@" + conn.RemoteAddr().String())
+
 			send := netutils.TCPWriter(conn, errors)
 			recv := netutils.TCPReader(conn, errors)
-			go s.acceptConnection(send, recv).serve()
+			go s.acceptConnection(cid, send, recv).serve()
+			cid++
 		}
 	}
 }
 
-func (s *Server) acceptConnection(send chan<- []byte, recv <-chan byte) *connection {
-	s.logger.Println("accepted connection")
+func (s *Server) acceptConnection(cid uint64, send chan<- []byte, recv <-chan byte) *connection {
 	return &connection{
+		cid: cid,
 		s: s,
 		send: send,
 		recv: recv,
@@ -178,7 +184,7 @@ func (c *connection) serve() {
 				} else {
 					c.s.Put(split[1], split[2])
 					buf.WriteString(OK)
-					c.s.logger.Println("put " + split[1] + "=" + split[2])
+					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") put " + split[1] + "=" + split[2])
 				}
 			case "GET":
 				if len(split) != 2 {
@@ -190,7 +196,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(NIL)
 					}
-					c.s.logger.Println("get", split[1])
+					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") get", split[1])
 				}
 			case "HASKEY":
 				if len(split) != 2 {
@@ -202,7 +208,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(FALSE)
 					}	
-					c.s.logger.Println("haskey", split[1])
+					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") haskey", split[1])
 				}
 			case "HASVALUE":
 				if len(split) != 2 {
@@ -214,7 +220,7 @@ func (c *connection) serve() {
 					} else {
 						buf.WriteString(FALSE)
 					}
-					c.s.logger.Println("hasvalue", split[1])
+					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") hasvalue", split[1])
 				}
 			case "REMOVE":
 				if len(split) != 2 {
@@ -222,7 +228,7 @@ func (c *connection) serve() {
 				} else {
 					c.s.Remove(split[1])
 					buf.WriteString(OK)
-					c.s.logger.Println("remove", split[1])
+					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") remove", split[1])
 				}
 			case "SIZE":
 				if len(split) != 1 {
@@ -237,7 +243,7 @@ func (c *connection) serve() {
 				} else {
 					c.s.Clear()
 					buf.WriteString(OK)
-					c.s.logger.Println("clear")
+					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") clear")
 				}
 			case "LIST":
 				if len(split) == 1 || len(split) == 2 { 
@@ -251,19 +257,19 @@ func (c *connection) serve() {
 							for i := 0; i < size; i++ {
 								buf.WriteString(keys[i] + "=" + values[i] + "\n")
 							}
-							c.s.logger.Println("list")
+							c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list")
 						} else {
 							switch split[1] {
 							case "KEYS":
 								for i := 0; i < size; i++ {
 									buf.WriteString(keys[i] + "\n")
 								}
-								c.s.logger.Println("list keys")
+								c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list keys")
 							case "VALUES":
 								for i := 0; i < size; i++ {
 									buf.WriteString(values[i] + "\n")
 								}
-								c.s.logger.Println("list values")
+								c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list values")
 							default:
 								buf.WriteString(ERROR)
 							}
@@ -282,7 +288,7 @@ func (c *connection) serve() {
 				c.s.logger.Println("quit")
 			default:
 				buf.WriteString(ERROR)
-				c.s.logger.Println("invalid command")
+				c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") invalid command")
 			}
 
 			c.send <- buf.Bytes()
@@ -293,5 +299,5 @@ func (c *connection) serve() {
 func (c *connection) close() {
 	close(c.send)
 	<-c.recv
-	c.s.logger.Println("connection closed")
+	c.s.logger.Println("connection", c.cid, "closed")
 }	

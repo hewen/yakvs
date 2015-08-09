@@ -220,13 +220,16 @@ func (c *connection) serve() {
 	defer c.close()
 
 	const (
-		ERROR = "ERROR\n"
-		OK    = "OK\n"
-		TRUE  = "TRUE\n"
-		FALSE = "FALSE\n"
-		NIL   = "nil\n"
-		BYE   = "BYE\n"
+		ERROR 	= "ERROR\n"
+		OK    	= "OK\n"
+		TRUE  	= "TRUE\n"
+		FALSE 	= "FALSE\n"
+		NIL   	= "nil\n"
+		BYE   	= "BYE\n"
+		WELCOME = "WELCOME\n"
 	)
+
+	c.send <- WELCOME
 
 	for line := range netutils.Readlines(c.recv) {
 		bSplit := bytes.SplitN(line, []byte(" "), -1)

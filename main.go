@@ -23,6 +23,9 @@ func main() {
 
 	if flag.NArg() != 1 {
 		fmt.Println("Usage: yakvs <port>")
+		fmt.Println("Options:")
+		fmt.Println("  -maxclients <number>")
+		fmt.Println("  -maxprocs <number>")
 		return
 	}
 

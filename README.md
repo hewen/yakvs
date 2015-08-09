@@ -1,6 +1,6 @@
 # YAKVS [![Build Status](https://travis-ci.org/sci4me/yakvs.svg?branch=master)](https://travis-ci.org/sci4me/yakvs)
 
-YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked key-value store written in Go.
+YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory key-value store written in Go.
 
 ## Install
 
@@ -12,13 +12,17 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked key-value 
 
 ## Protocol
 
-This package implements a TCP network service which exposes a key-value store to clients. The client can perform the following commands:
+This package implements a TCP network service which exposes an in-memory key-value store to clients. The client can perform the following commands:
 
  - PUT
  - GET
  - HAS
  - REMOVE
  - SIZE
+ - CLEAR
+ - LIST
+ - LIST KEYS
+ - LIST VALUES
  - QUIT
 
 The server can send the following responses:

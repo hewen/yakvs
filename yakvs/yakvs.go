@@ -10,7 +10,7 @@ import (
 	"github.com/timtadh/netutils"
 )
 
-type server struct {
+type Server struct {
 	listener *net.TCPListener
 	data map[string]string
 	lock *sync.RWMutex
@@ -18,33 +18,35 @@ type server struct {
 }
 
 type connection struct {
-	s *server
+	s *Server
 	send chan<- []byte
 	recv <-chan byte
 }
 
-func NewServer() *server {
-	s := new(server)
+func NewServer() *Server {
+	s := new(Server)
 	s.data = make(map[string]string)
 	s.lock = new(sync.RWMutex)
 	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate | log.Ltime)
 	return s
 }
 
-func (s *server) Start(port int) {
+func (s *Server) Start(port int) {
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: port})
 	if err != nil {
 		panic(err)
 	}
 	s.listener = listener
+	s.logger.Println("started")
 	s.listen()
 }
 
-func (s *server) Stop() {
+func (s *Server) Stop() {
 	s.listener.Close()
+	s.logger.Println("stopped")
 }
 
-func (s *server) Put(key, value string) {
+func (s *Server) Put(key, value string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -53,7 +55,7 @@ func (s *server) Put(key, value string) {
 	s.data[key] = value	
 }
 
-func (s *server) Get(key string) (value string, has bool) {
+func (s *Server) Get(key string) (value string, has bool) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -63,7 +65,7 @@ func (s *server) Get(key string) (value string, has bool) {
 	return
 }
 
-func (s *server) Remove(key string) {
+func (s *Server) Remove(key string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -72,14 +74,37 @@ func (s *server) Remove(key string) {
 	delete(s.data, key)
 }
 
-func (s *server) Size() int {
+func (s *Server) Clear() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.logger.Println("clear")
+
+	s.data = make(map[string]string)
+}
+
+func (s *Server) List() (keys []string, values []string) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	keys = make([]string, 0)
+	values = make([]string, 0)
+
+	for key, value := range s.data {
+		keys = append(keys, key)
+		values = append(values, value)
+	}
+	return
+}	
+
+func (s *Server) Size() int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	return len(s.data)
 }
 
-func (s *server) listen() {
+func (s *Server) listen() {
 	errors := make(chan error)
 	go func() {
 		for err := range errors {
@@ -102,7 +127,7 @@ func (s *server) listen() {
 	}
 }
 
-func (s *server) acceptConnection(send chan<- []byte, recv <-chan byte) *connection {
+func (s *Server) acceptConnection(send chan<- []byte, recv <-chan byte) *connection {
 	s.logger.Println("accepted connection")
 	return &connection{
 		s: s,
@@ -167,6 +192,42 @@ func (c *connection) serve() {
 					c.send <- []byte("ERROR\n")
 				} else {
 					c.send <- []byte(strconv.Itoa(c.s.Size()) + "\n")
+				}
+			case "CLEAR":
+				if len(split) != 1 {
+					c.send <- []byte("ERROR\n")
+				} else {
+					c.s.Clear()
+					c.send <- []byte("OK\n")
+				}
+			case "LIST":
+				if len(split) == 1 || len(split) == 2 { 
+					keys, values := c.s.List()	
+					size := c.s.Size()
+					var buf bytes.Buffer
+
+					if len(split) == 1 {
+						for i := 0; i < size; i++ {
+							buf.WriteString(keys[i] + "=" + values[i] + "\n")
+						}
+					} else {
+						switch split[1] {
+						case "KEYS":
+							for i := 0; i < size; i++ {
+								buf.WriteString(keys[i] + "\n")
+							}
+						case "VALUES":
+							for i := 0; i < size; i++ {
+							buf.WriteString(values[i] + "\n")
+						}
+						default:
+							buf.WriteString("ERROR\n")
+						}
+					}
+
+					c.send <- buf.Bytes()
+				} else {
+					c.send <- []byte("ERROR\n")
 				}
 			case "QUIT":
 				if len(split) != 1 {

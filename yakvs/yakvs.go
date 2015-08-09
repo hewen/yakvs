@@ -146,7 +146,7 @@ func (s *Server) Clear() {
 	s.data = make(map[string]string)
 }
 
-// List returns a slice containig all keys in this store, a slice containing all values in this store, and the size of the store.
+// List returns a slice containing all keys in this store, a slice containing all values in this store, and the size of the store.
 func (s *Server) List() (keys []string, values []string, size int) {
 	s.dataLock.RLock()
 	defer s.dataLock.RUnlock()

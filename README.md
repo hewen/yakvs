@@ -10,6 +10,8 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 
     yakvs 
 
+If YAKVS is being run for the first time, it will automatically generate the default configuration file in `yakvs.conf` and start running with those options.
+
 ## Protocol
 
 YAKVS uses a text-based TCP protocol. Commands and results are newline delimited. Here are the supported commands:

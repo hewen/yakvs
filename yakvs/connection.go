@@ -5,6 +5,7 @@ import (
 	"github.com/timtadh/netutils"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type connection struct {
@@ -17,6 +18,9 @@ type connection struct {
 
 	closed bool
 	closedLock *sync.Mutex
+
+	lastAccess time.Time
+	lastAccessLock *sync.Mutex
 }
 
 func (c *connection) writeString(s string) {
@@ -38,6 +42,10 @@ func (c *connection) serve() {
 			for _, b := range bSplit {
 				split = append(split, string(bytes.TrimSpace(b)))
 			}
+
+			c.lastAccessLock.Lock()
+			c.lastAccess = time.Now()
+			c.lastAccessLock.Unlock()
 
 			switch split[0] {
 			case "PUT":

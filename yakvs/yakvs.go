@@ -219,14 +219,49 @@ func (s *YAKVS) listen() {
 		}
 	}()
 
+	ticker := time.NewTicker(time.Millisecond * 100) // TODO config option?
+	stopTickGoroutine := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-stopTickGoroutine:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				if s.config.Server.Connection_timeout > 0 {
+					toTimeout := make([]*connection, 0)
+
+					dTimeout := time.Second * s.config.Server.Connection_timeout
+
+					s.connectionsLock.RLock()
+					for _, conn := range s.connections {
+						conn.lastAccessLock.Lock()
+						since := time.Since(conn.lastAccess)
+						conn.lastAccessLock.Unlock()
+
+						if since >= dTimeout {
+							toTimeout = append(toTimeout, conn)
+						}
+					}
+					s.connectionsLock.RUnlock()
+				
+					for _, conn := range toTimeout {
+						conn.writeString("TIMED OUT\n")
+						s.closeConnection(conn)
+					}
+				}
+			}
+		}
+	}()	
+
 	s.logger.Println("yakvs server started")
 
 	var cid uint64
-	var eof bool
-	for !eof {
+	var exit bool
+	for !exit {
 		conn, err := s.listener.AcceptTCP()
 		if netutils.IsEOF(err) {
-			eof = true
+			exit = true
 		} else if err != nil {
 			s.logger.Panic(err)
 		} else {
@@ -235,7 +270,6 @@ func (s *YAKVS) listen() {
 			s.runningLock.Unlock()
 
 			var canConnect bool
-			var shouldQuit bool
 			if isRunning {
 				maxClients := s.config.Server.Max_clients
 
@@ -248,7 +282,7 @@ func (s *YAKVS) listen() {
 				}
 			} else {
 				canConnect = false
-				shouldQuit = true
+				exit = true
 			}
 
 			if canConnect {
@@ -265,12 +299,11 @@ func (s *YAKVS) listen() {
 					s.logger.Println("ignored connection from " + conn.RemoteAddr().String())
 				}
 			}
-
-			if shouldQuit {
-				return
-			}
 		}
 	}
+
+	close(errChan)
+	stopTickGoroutine <- true
 }
 
 func (s *YAKVS) accept(cid uint64, conn *net.TCPConn, errChan chan error) *connection {
@@ -281,6 +314,15 @@ func (s *YAKVS) accept(cid uint64, conn *net.TCPConn, errChan chan error) *conne
 	c.send = netutils.TCPWriter(conn, errChan)
 	c.recv = netutils.TCPReader(conn, errChan)
 	c.closedLock = new(sync.Mutex)
+	c.lastAccessLock = new(sync.Mutex)
+
+	c.lastAccessLock.Lock()
+	c.lastAccess = time.Now()
+	c.lastAccessLock.Unlock()
+
+	s.connectionsLock.Lock()
+	s.connections[cid] = c
+	s.connectionsLock.Unlock()
 
 	return c
 }

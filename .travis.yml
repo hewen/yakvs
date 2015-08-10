@@ -5,3 +5,4 @@ go:
 
 install:
   go get github.com/timtadh/netutils
+  go get code.google.com/p/gcfg

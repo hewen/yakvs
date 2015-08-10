@@ -235,6 +235,7 @@ func (s *YAKVS) listen() {
 			s.runningLock.Unlock()
 
 			var canConnect bool
+			var shouldQuit bool
 			if isRunning {
 				maxClients := s.config.Server.Max_clients
 
@@ -247,6 +248,7 @@ func (s *YAKVS) listen() {
 				}
 			} else {
 				canConnect = false
+				shouldQuit = true
 			}
 
 			if canConnect {
@@ -262,6 +264,10 @@ func (s *YAKVS) listen() {
 				if s.config.Logging.Connection_refused {
 					s.logger.Println("ignored connection from " + conn.RemoteAddr().String())
 				}
+			}
+
+			if shouldQuit {
+				return
 			}
 		}
 	}
@@ -279,7 +285,7 @@ func (s *YAKVS) accept(cid uint64, conn *net.TCPConn, errChan chan error) *conne
 	return c
 }
 
-func (s YAKVS) closeConnection(c *connection) {
+func (s *YAKVS) closeConnection(c *connection) {
 	c.closedLock.Lock()
 	defer c.closedLock.Unlock()
 

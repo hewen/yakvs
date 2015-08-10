@@ -1,73 +1,103 @@
 package main
 
 import (
-	"flag"
+	"code.google.com/p/gcfg"
 	"fmt"
 	"github.com/sci4me/yakvs/yakvs"
 	"os"
 	"os/signal"
-	"runtime"
-	"strconv"
 	"syscall"
 )
 
-const (
-	MAX_CLIENTS = 10000
-	VERBOSITY   = yakvs.MIN_VERBOSITY
-)
+const defaultConfig = `[server]
+port=2244
+max-clients=10000
+connection-timeout=0 # in seconds. 0 = disabled
+max-procs=0 # 0 = runtime.NumCPU()
+
+[logging]
+connection-accepted=true
+connection-closed=true
+connection-refused=true
+invalid-command=true
+clear=true
+put=true
+remove=true
+get=true
+haskey=true
+hasvalue=true
+list=true
+list-keys=true
+list-values=true
+size=true
+quit=true
+`
+
+func loadConfig(filePath string) (*yakvs.Config, error) {
+	cfg := new(yakvs.Config)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			file, err = os.Create(filePath)
+			if err != nil {
+				return nil, err
+			}
+
+			file.WriteString(defaultConfig)
+			file.WriteString("\n")
+			file.Close()
+
+			file, err = os.Open(filePath)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+	defer file.Close()
+
+	err = gcfg.ReadInto(cfg, file)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
 
 func main() {
-	fMaxClients := flag.Int("maxclients", MAX_CLIENTS, "")
-	fMaxProcs := flag.Int("maxprocs", runtime.NumCPU(), "")
-	fVerbosity := flag.Int("verbosity", VERBOSITY, "")
-
-	flag.Parse()
-
-	if flag.NArg() != 1 {
-		fmt.Println("Usage: yakvs <port>")
-		fmt.Println("Options:")
-		fmt.Println("  -maxclients=<number>")
-		fmt.Println("  -maxprocs=<number>")
-		fmt.Println("  -verbosity=<number>")
-		return
-	}
-
-	sPort := flag.Arg(0)
-
-	port, err := strconv.Atoi(sPort)
+	pCfg, err := loadConfig("yakvs.conf")
 	if err != nil {
-		fmt.Println("error parsing port:", err, "\nUsage: yakvs <port>")
+		panic(err)
+	}
+	cfg := *pCfg
+
+	if cfg.Server.Max_clients <= 0 {
+		fmt.Println("Config error: max-clients cannot be less than one")
 		return
 	}
 
-	maxClients := *fMaxClients
-	maxProcs := *fMaxProcs
-	verbosity := *fVerbosity
-
-	if maxClients < 1 {
-		fmt.Println("maxclients must be > 0, using default")
-		maxClients = MAX_CLIENTS
+	if cfg.Server.Connection_timeout < 0 {
+		fmt.Println("Config error: connection-timeout cannot be less than zero")
+		return
 	}
 
-	if maxProcs < 1 {
-		fmt.Println("maxprocs must be > 0, using default")
-		maxProcs = runtime.NumCPU()
+	// TODO GOMAXPROCS
+
+	server := yakvs.NewServer(cfg)
+	err = server.Start()
+	if err != nil {
+		panic(err)
 	}
-
-	if verbosity < yakvs.MIN_VERBOSITY || verbosity > yakvs.MAX_VERBOSITY {
-		fmt.Println("verbosity must be > 0 and < ", yakvs.MAX_VERBOSITY + 1, "using default")
-		verbosity = VERBOSITY
-	}
-
-	runtime.GOMAXPROCS(maxProcs)
-
-	server := yakvs.NewServer(port, maxClients, verbosity)
-	go server.Start()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, syscall.SIGTERM)
 	<-c
 
-	server.Stop()
+	err = server.Stop()
+	if err != nil {
+		panic(err)
+	}
 }

@@ -30,13 +30,13 @@ func (c *connection) writeString(s string) {
 func (c *connection) serve() {
 	defer c.s.closeConnection(c)
 
-	c.writeString("WELCOME\n")
+	c.writeString(cWELCOME)
 
 	for line := range netutils.Readlines(c.recv) {
 		bSplit := bytes.SplitN(line, []byte(" "), -1)
 
 		if len(bSplit) < 1 {
-			c.writeString("ERROR\n")
+			c.writeString(cERROR)
 		} else {
 			split := make([]string, 0)
 			for _, b := range bSplit {
@@ -48,76 +48,76 @@ func (c *connection) serve() {
 			c.lastAccessLock.Unlock()
 
 			switch split[0] {
-			case "PUT":
+			case cPUT:
 				if len(split) != 3 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
 					c.s.Put(split[1], split[2])
-					c.writeString("OK\n")
+					c.writeString(cOK)
 
 					if c.s.config.Logging.Put {
 						c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") put " + split[1] + "=" + split[2])
 					}
 				}
-			case "GET":
+			case cGET:
 				if len(split) != 2 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
 					value, has := c.s.Get(split[1])
 					if has {
 						c.writeString(value + "\n")
 					} else {
-						c.writeString("nil\n")
+						c.writeString(cNIL)
 					}
 
 					if c.s.config.Logging.Get {
 						c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") get", split[1])
 					}
 				}
-			case "HASKEY":
+			case cHASKEY:
 				if len(split) != 2 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
 					has := c.s.HasKey(split[1])
 					if has {
-						c.writeString("TRUE\n")
+						c.writeString(cTRUE)
 					} else {
-						c.writeString("FALSE\n")
+						c.writeString(cFALSE)
 					}
 
 					if c.s.config.Logging.Haskey {
 						c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") haskey", split[1])
 					}
 				}
-			case "HASVALUE":
+			case cHASVALUE:
 				if len(split) != 2 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
 					has := c.s.HasValue(split[1])
 					if has {
-						c.writeString("TRUE\n")
+						c.writeString(cTRUE)
 					} else {
-						c.writeString("FALSE\n")
+						c.writeString(cFALSE)
 					}
 
 					if c.s.config.Logging.Haskey {
 						c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") hasvalue", split[1])
 					}
 				}
-			case "REMOVE":
+			case cREMOVE:
 				if len(split) != 2 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
 					c.s.Remove(split[1])
-					c.writeString("OK\n")
+					c.writeString(cOK)
 
 					if c.s.config.Logging.Remove {
 						c.s.logger.Println("(cid:"+strconv.FormatUint(c.cid, 10)+") remove", split[1])
 					}
 				}
-			case "SIZE":
+			case cSIZE:
 				if len(split) != 1 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
 					c.writeString(strconv.Itoa(c.s.Size()) + "\n")
 
@@ -125,23 +125,23 @@ func (c *connection) serve() {
 						c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") size")
 					}
 				}
-			case "CLEAR":
+			case cCLEAR:
 				if len(split) != 1 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
 					c.s.Clear()
-					c.writeString("OK\n")
+					c.writeString(cOK)
 
 					if c.s.config.Logging.Clear {
 						c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") clear")
 					}
 				}
-			case "LIST":
+			case cLIST:
 				if len(split) == 1 || len(split) == 2 {
 					keys, values, size := c.s.List()
 
 					if size == 0 {
-						c.writeString("nil\n")
+						c.writeString(cNIL)
 					} else {
 						var buf bytes.Buffer
 
@@ -157,7 +157,7 @@ func (c *connection) serve() {
 							}
 						} else {
 							switch split[1] {
-							case "KEYS":
+							case cKEYS:
 								for i := 0; i < size; i++ {
 									buf.WriteString(keys[i] + "\n")
 								}
@@ -165,7 +165,7 @@ func (c *connection) serve() {
 								if c.s.config.Logging.List_keys {
 									c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list keys")
 								}
-							case "VALUES":
+							case cVALUES:
 								for i := 0; i < size; i++ {
 									buf.WriteString(values[i] + "\n")
 								}
@@ -174,20 +174,20 @@ func (c *connection) serve() {
 									c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") list values")
 								}
 							default:
-								buf.WriteString("ERROR\n")
+								buf.WriteString(cERROR)
 							}
 						}
 
 						c.writeString(buf.String())
 					}
 				} else {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				}
-			case "QUIT":
+			case cQUIT:
 				if len(split) != 1 {
-					c.writeString("ERROR\n")
+					c.writeString(cERROR)
 				} else {
-					c.writeString("BYE\n")
+					c.writeString(cBYE)
 
 					if c.s.config.Logging.Quit {
 						c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") quit")
@@ -196,7 +196,7 @@ func (c *connection) serve() {
 					return
 				}
 			default:
-				c.writeString("ERROR\n")
+				c.writeString(cERROR)
 
 				if c.s.config.Logging.Invalid_command {
 					c.s.logger.Println("(cid:" + strconv.FormatUint(c.cid, 10) + ") invalid command: " + string(line))

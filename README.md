@@ -97,3 +97,9 @@ If a connection is attempted while the number of clients connected to the server
 CONNECTION REFUSED
 ```
 The connection will then be closed.
+
+If connection timeout is enabled and a connection goes too long (the timeout setting) without issuing a command, the connection will receive the following message:
+```
+TIMED OUT
+```
+The connection will then be closed.

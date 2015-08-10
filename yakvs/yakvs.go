@@ -11,6 +11,32 @@ import (
 	"time"
 )
 
+const (
+	cWELCOME = "WELCOME\n"
+	cBYE = "BYE\n"
+	cERROR = "ERROR\n"
+	cTIMED_OUT = "TIMED OUT\n"
+	cCONNECTION_REFUSED = "CONNECTION REFUSED\n"
+	cOK = "OK\n"
+	cTRUE = "TRUE\n"
+	cFALSE = "FALSE\n"
+	cNIL = "nil\n"
+
+	cSERVER_STOPPED = "SERVER STOPPED\n"
+
+	cPUT = "PUT"
+	cGET = "GET"
+	cHASKEY = "HASKEY"
+	cHASVALUE = "HASVALUE"
+	cREMOVE = "REMOVE"
+	cSIZE = "SIZE"
+	cCLEAR = "CLEAR"
+	cLIST = "LIST"
+	cKEYS = "KEYS"
+	cVALUES = "VALUES"
+	cQUIT = "QUIT"
+)
+
 // Config represents a set of configuration options for a YAKVS server.
 type Config struct {
 	Server struct {
@@ -122,7 +148,7 @@ func (s *YAKVS) Stop() error {
 	for i := 0; i < len(conns); i++ {
 		conn := conns[i]
 
-		conn.writeString("SERVER STOPPED\n")
+		conn.writeString(cSERVER_STOPPED)
 		s.closeConnection(conn)
 	}
 
@@ -246,7 +272,7 @@ func (s *YAKVS) listen() {
 					s.connectionsLock.RUnlock()
 				
 					for _, conn := range toTimeout {
-						conn.writeString("TIMED OUT\n")
+						conn.writeString(cTIMED_OUT)
 						s.closeConnection(conn)
 					}
 				}
@@ -292,7 +318,7 @@ func (s *YAKVS) listen() {
 				}
 				cid++
 			} else {
-				conn.Write([]byte("CONNECTION REFUSED\n"))
+				conn.Write([]byte(cCONNECTION_REFUSED))
 				conn.Close()
 
 				if s.config.Logging.Connection_refused {

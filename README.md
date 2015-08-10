@@ -8,34 +8,7 @@ YAKVS (Yet Another Key Value Store) is a tiny, lightweight, networked, in-memory
 
 ## Usage
 
-    yakvs
-
-### Verbosity Options
-
-    0:
-      - connection accepted  
-      - connection closed  
-      - connection refused
-      - invalid command
-
-    1:  
-      - clear
-
-    2:  
-      - put  
-      - remove  
-  
-    3:  
-      - get  
-      - haskey  
-      - hasvalue  
-
-    4:  
-      - list  
-      - list keys  
-      - list values  
-      - size  
-      - quit  
+    yakvs 
 
 ## Protocol
 

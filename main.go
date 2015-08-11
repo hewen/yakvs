@@ -7,12 +7,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"runtime"
 )
 
 const defaultConfig = `[server]
 port=2244
 max-clients=10000
-connection-timeout=0 # in seconds. 0 = disabled
+connection-timeout=0 # in milliseconds. 0 = disabled
 max-procs=0 # 0 = runtime.NumCPU()
 
 [logging]
@@ -67,6 +68,8 @@ func loadConfig(filePath string) (*yakvs.Config, error) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU()) // TODO: remove this...
+
 	pCfg, err := loadConfig("yakvs.conf")
 	if err != nil {
 		panic(err)
@@ -82,8 +85,6 @@ func main() {
 		fmt.Println("Config error: connection-timeout cannot be less than zero")
 		return
 	}
-
-	// TODO GOMAXPROCS
 
 	server := yakvs.NewServer(cfg)
 	err = server.Start()

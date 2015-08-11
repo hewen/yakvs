@@ -97,6 +97,8 @@ func NewServer(cfg Config) *YAKVS {
 
 	s.runningLock = new(sync.Mutex)
 
+	s.config.Server.Connection_timeout *= time.Millisecond
+
 	s.logger = log.New(os.Stdout, "yakvs> ", log.Ldate|log.Ltime)
 
 	return s
@@ -257,7 +259,7 @@ func (s *YAKVS) listen() {
 				if s.config.Server.Connection_timeout > 0 {
 					toTimeout := make([]*connection, 0)
 
-					dTimeout := time.Second * s.config.Server.Connection_timeout
+					dTimeout := s.config.Server.Connection_timeout
 
 					s.connectionsLock.RLock()
 					for _, conn := range s.connections {

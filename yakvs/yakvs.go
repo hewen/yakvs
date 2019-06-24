@@ -2,39 +2,40 @@ package yakvs
 
 import (
 	"errors"
-	"github.com/timtadh/netutils"
 	"log"
 	"net"
 	"os"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/timtadh/netutils"
 )
 
 const (
-	cWELCOME = "WELCOME\n"
-	cBYE = "BYE\n"
-	cERROR = "ERROR\n"
-	cTIMED_OUT = "TIMED OUT\n"
+	cWELCOME            = "WELCOME\n"
+	cBYE                = "BYE\n"
+	cERROR              = "ERROR\n"
+	cTIMED_OUT          = "TIMED OUT\n"
 	cCONNECTION_REFUSED = "CONNECTION REFUSED\n"
-	cOK = "OK\n"
-	cTRUE = "TRUE\n"
-	cFALSE = "FALSE\n"
-	cNIL = "nil\n"
+	cOK                 = "OK\n"
+	cTRUE               = "TRUE\n"
+	cFALSE              = "FALSE\n"
+	cNIL                = "nil\n"
 
 	cSERVER_STOPPED = "SERVER STOPPED\n"
 
-	cPUT = "PUT"
-	cGET = "GET"
-	cHASKEY = "HASKEY"
+	cPUT      = "PUT"
+	cGET      = "GET"
+	cHASKEY   = "HASKEY"
 	cHASVALUE = "HASVALUE"
-	cREMOVE = "REMOVE"
-	cSIZE = "SIZE"
-	cCLEAR = "CLEAR"
-	cLIST = "LIST"
-	cKEYS = "KEYS"
-	cVALUES = "VALUES"
-	cQUIT = "QUIT"
+	cREMOVE   = "REMOVE"
+	cSIZE     = "SIZE"
+	cCLEAR    = "CLEAR"
+	cLIST     = "LIST"
+	cKEYS     = "KEYS"
+	cVALUES   = "VALUES"
+	cQUIT     = "QUIT"
 )
 
 // Config represents a set of configuration options for a YAKVS server.
@@ -272,7 +273,7 @@ func (s *YAKVS) listen() {
 						}
 					}
 					s.connectionsLock.RUnlock()
-				
+
 					for _, conn := range toTimeout {
 						conn.writeString(cTIMED_OUT)
 						s.closeConnection(conn)
@@ -280,7 +281,7 @@ func (s *YAKVS) listen() {
 				}
 			}
 		}
-	}()	
+	}()
 
 	s.logger.Println("yakvs server started")
 
